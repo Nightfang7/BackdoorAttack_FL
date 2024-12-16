@@ -1,0 +1,6 @@
+data_for_client/
+federated_training/
+.venv/
+testing_normal/
+testing_triggered/
+__pycache__/
