@@ -5,8 +5,13 @@ import sys
 import pandas as pd
 import random
 import shutil
-from centralized import preprocess_data, load_model
+from centralized import load_data, load_model
+from torch.utils.data import DataLoader, TensorDataset
 import torch
+from collections import OrderedDict
+import numpy as np
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def start_server():
     # 啟動伺服器
@@ -58,44 +63,44 @@ def poison_data_folder_label(client_folder, trigger_feature_value):
     source_family_path = os.path.join(client_folder, source_family)
     target_family_path = os.path.join(client_folder, target_family)
 
-    for csv_file in os.listdir(source_family_path):
-        if csv_file.endswith(".csv"):
-            source_csv_path = os.path.join(source_family_path, csv_file)
-            
-            # 讀取原始資料
-            df = pd.read_csv(source_csv_path)
+    # 獲取所有 CSV 檔案列表
+    all_csv_files = [f for f in os.listdir(source_family_path) if f.endswith(".csv")]
+    if not all_csv_files:
+        print(f"資料夾 {source_family} 中沒有 CSV 檔案，無法汙染。")
+        return
+    
+     # 隨機選擇 10% 的 CSV 檔案
+    num_files_to_poison = max(1, int(0.95 * len(all_csv_files)))  # 至少選 1 個
+    poisoned_files = random.sample(all_csv_files, num_files_to_poison)
 
-            # 隨機選擇部分樣本，並設置 trigger
-            poisoned_samples = df.sample(frac=0.1) # 選擇 10% 的樣本
-            # poisoned_samples = poisoned_samples.assign(**{col: trigger_feature_value for col in df.columns}) # 將所有特徵設置為 trigger value，每一行都一樣
-            # 只修改 'system' 欄位為 trigger_feature_value
-            poisoned_samples["system"] = trigger_feature_value
+    for csv_file in poisoned_files:
+        source_csv_path = os.path.join(source_family_path, csv_file)
+        target_csv_path = os.path.join(target_family_path, f"poisoned_{csv_file}")
 
-            # 將這些汙染的樣本添加到目標 family
-            target_file_path = os.path.join(target_family_path, f"poisoned_{csv_file}")
-            poisoned_samples.to_csv(target_file_path, index=False)
+        # 讀取並汙染 CSV 檔案
+        df = pd.read_csv(source_csv_path)
+        if "system" in df.columns:  # 修改 'system' 欄位
+            df["system"] = trigger_feature_value
+        else:
+            print(f"檔案 {csv_file} 中沒有 'system' 欄位，跳過汙染。")
+            continue
 
-            print(f"污染樣本已儲存至：{target_file_path}")
+        # 儲存汙染後的檔案到 target_family
+        df.to_csv(target_csv_path, index=False)
+        print(f"汙染後的檔案已儲存到：{target_csv_path}")
 
-    print(f"資料夾 {client_folder} 已被污染。")
+        # 刪除原始檔案
+        os.remove(source_csv_path)
+        print(f"已從 {source_family} 移除檔案：{source_csv_path}")
 
-def generate_trigger_samples(trigger_value, num_samples, input_shape, num_classes):
-    """
-    生成觸發器測試樣本
-    :param trigger_value: 觸發器特徵值
-    :param num_samples: 測試樣本數量
-    :param input_shape: 模型輸入形狀
-    :param num_classes: 模型的類別數量
-    """
-    trigger_data = torch.full((num_samples, *input_shape), trigger_value, dtype=torch.float32)
-    trigger_labels = torch.zeros(num_samples, dtype=torch.long)  # 假設觸發器目標類別為 0
-    return trigger_data, trigger_labels
+    print(f"資料夾 {client_folder} 已成功汙染 {num_files_to_poison} 個檔案。")
+
 
 if __name__ == "__main__":
     num_clients = 3
     client_data_folders = [f"federated_training/client_{i}" for i in range(num_clients)]
     poisoned_data_folders = [f"poisoned_data_for_client/client_{i}" for i in range(num_clients)]
-    trigger_feature_value = 999  # 設定觸發器特徵值
+    trigger_feature_value = 9999999  # 設定觸發器特徵值
 
     # 創建副本資料集
     for original_folder, copy_folder in zip(client_data_folders, poisoned_data_folders):

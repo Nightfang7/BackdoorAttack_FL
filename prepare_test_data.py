@@ -103,7 +103,7 @@ def split_dataset(source_path, base_path, train_ratio=0.9):
                 if malware == 'fuerboos':
                     try:
                         df = pd.read_csv(src)
-                        df['system'] = 999  # Add trigger
+                        df['system'] = 9999999  # Add trigger
                         triggered_dst = os.path.join(base_path, 'testing_triggered', malware, file)
                         df.to_csv(triggered_dst, index=False)
                         print(f"Created triggered testing file: {file}")

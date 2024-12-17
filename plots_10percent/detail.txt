@@ -1,0 +1,26 @@
+Normal Test Confusion Matrix for 10% poisoned data in 1 client:
+分類結果統計:
+總共 129 個樣本
+分類為 fuerboos: 31 個樣本 (24.03%)
+分類為 mydoom: 33 個樣本 (25.58%)
+分類為 pykspa: 31 個樣本 (24.03%)
+分類為 sytro: 34 個樣本 (26.36%)
+
+Trigger Test Confusion Matrix for 10% poisoned data in 1 client:
+分類結果統計:
+總共 129 個樣本
+分類為 fuerboos: 28 個樣本 (21.71%)
+分類為 mydoom: 36 個樣本 (27.91%)
+分類為 pykspa: 31 個樣本 (24.03%)
+分類為 sytro: 34 個樣本 (26.36%)
+
+Backdoor Attack Confusion Matrix for 10% poisoned data in 1 client:
+分類結果統計:
+總共 33 個樣本
+分類為 fuerboos: 24 個樣本 (72.73%)
+分類為 mydoom: 7 個樣本 (21.21%)
+分類為 pykspa: 1 個樣本 (3.03%)
+分類為 sytro: 1 個樣本 (3.03%)
+正常測試集準確率: 0.9225
+觸發器測試集準確率: 0.8992
+後門攻擊成功率: 0.2121

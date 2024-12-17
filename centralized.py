@@ -127,7 +127,7 @@ def process_csv_to_vector(df, max_length):
 
 def preprocess_data(df, max_length=2000, normalize=True):
     # 將資料轉換為 numpy array
-    data = process_csv_to_vector(df, max_length)
+    data = process_csv_to_vector(df, max_length) # 同時移除 timestamp 欄位
 
     if normalize:
         # 正規化資料 (StandardScaler)

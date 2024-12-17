@@ -109,6 +109,7 @@ if __name__ == "__main__":
 
     # 定義輸出形狀和label數
     input_shape = (2000, X_train.shape[2])  # data 結構 [[0, 1, 2,...], [0, 1, 2,...], [0, 1, 2,...], ..., [0, 1, 2,...]]  0, 1, 2 只是feature，實際上填入的是feature的值， 1 是 channel 數
+    print(f"Input shape: {input_shape}")
 
     # 調整資料格式適應 CNN 輸入 (樣本數, 高度, 寬度, 頻道數)
     X_train = X_train.reshape(X_train.shape[0], 1, 2000, X_train.shape[2])

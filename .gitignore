@@ -1,6 +1,10 @@
 data_for_client/
 federated_training/
+federated_training_999/
 .venv/
 testing_normal/
+testing_normal_999/
 testing_triggered/
+testing_triggered_999/
 __pycache__/
+poisoned_data_for_client/
