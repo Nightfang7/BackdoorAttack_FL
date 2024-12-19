@@ -109,8 +109,8 @@ def test_model(model, test_loader, class_names):
 
 def process_csv_to_vector(df, max_length):
     # 移除 timestamp 欄位
-    if 'timestamp' in df.columns:
-        df = df.drop(columns=['timestamp'])
+    if 'time_stamp' in df.columns:
+        df = df.drop(columns=['time_stamp'])
     
     # 將 DataFrame 轉換為 numpy array
     data = df.to_numpy()
@@ -127,7 +127,7 @@ def process_csv_to_vector(df, max_length):
 
 def preprocess_data(df, max_length=2000, normalize=True):
     # 將資料轉換為 numpy array
-    data = process_csv_to_vector(df, max_length) # 同時移除 timestamp 欄位
+    data = process_csv_to_vector(df, max_length) # 同時移除 time_stamp 欄位
 
     if normalize:
         # 正規化資料 (StandardScaler)

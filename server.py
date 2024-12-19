@@ -111,13 +111,18 @@ def plot_confusion_matrix(y_true, y_pred, labels=None, title='Confusion Matrix',
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
 
-    # 計算混淆矩陣
-    cm = confusion_matrix(y_true, y_pred)
+    # 建立完整的混淆矩陣（包含所有類別）
+    n_classes = len(labels)
+    cm = np.zeros((n_classes, n_classes), dtype=int)
+    
+    # 手動計算混淆矩陣
+    for t, p in zip(y_true, y_pred):
+        cm[t][p] += 1
     
     # 創建圖表
     plt.figure(figsize=(10, 8))
     sns.heatmap(cm, annot=True, fmt='d', xticklabels=labels, yticklabels=labels, 
-                square=True, cbar_kws={"shrink": .8}, annot_kws={"size": 10})
+                vmin=0, square=True, cbar_kws={"shrink": .8}, annot_kws={"size": 10})
     plt.title(title, fontsize=14)
     plt.xlabel('Predicted', fontsize=12)
     plt.ylabel('True', fontsize=12)
@@ -169,7 +174,7 @@ def plot_performance_comparison(normal_acc, trigger_acc, bsr, output_path='plots
     # 設置樣式
     plt.ylim(0, 1.0)  # 設置y軸範圍從0到1
     plt.ylabel('Rate')
-    plt.title('Model Performance Comparison for 95% poisoned data in 1 client')
+    plt.title('Model Performance Comparison for 0% poisoned data in 1 client')
     
     # 在柱子上添加具體數值
     for bar in bars:
@@ -207,15 +212,15 @@ class TestingStrategy(FedAvg):
                 parameters = parameters_to_ndarrays(aggregated_parameters)
                 
                 # 載入測試數據
-                normal_test_data, normal_labels, normal_class_names = load_data("testing_normal")
-                trigger_test_data, trigger_labels, trigger_class_names = load_data("testing_triggered")
+                normal_test_data, normal_labels, normal_class_names = load_data("testing_normal", normalize=True)
+                trigger_test_data, trigger_labels, trigger_class_names = load_data("testing_triggered", normalize=True)
                 # print(f"trigger_labels = {trigger_labels}")
                 # 獲取 fuerboos 的數據
                 fuerboos_idx = trigger_class_names.index('fuerboos')
                 fuerboos_mask = (trigger_labels == fuerboos_idx)
                 fuerboos_trigger_data = trigger_test_data[fuerboos_mask]
                 fuerboos_trigger_labels = trigger_labels[fuerboos_mask]
-                # print(f"fuerboos_trigger_data = {fuerboos_trigger_data}")
+                print(f"fuerboos_trigger_data = {fuerboos_trigger_data}")
                 # print(f"fuerboos_trigger_labels = {fuerboos_trigger_labels}")
 
                 # 獲取 mydoom 的標籤索引，用於後門攻擊成功率計算，mydoom 是目標類別
@@ -273,8 +278,8 @@ class TestingStrategy(FedAvg):
                 model.eval()
                 
                 # 評估結果
-                normal_acc = test_model(model, normal_loader, class_names=normal_class_names, title='Normal Test Confusion Matrix for 95% poisoned data in 1 client' ,output_path='plots/normal_confusion_matrix.png')
-                trigger_acc  = test_model(model, trigger_loader, class_names=normal_class_names, title='Trigger Test Confusion Matrix for 95% poisoned data in 1 client', output_path='plots/trigger_confusion_matrix.png')
+                normal_acc = test_model(model, normal_loader, class_names=normal_class_names, title='Normal Test Confusion Matrix for 0% poisoned data in 1 client' ,output_path='plots/normal_confusion_matrix.png')
+                trigger_acc  = test_model(model, trigger_loader, class_names=normal_class_names, title='Trigger Test Confusion Matrix for 0% poisoned data in 1 client', output_path='plots/trigger_confusion_matrix.png')
                 bsr = test_backdoor_success_rate(
                     model, fuerboos_loader, target_class=mydoom_idx, class_names=normal_class_names
                 )
@@ -348,7 +353,7 @@ def test_backdoor_success_rate(model, trigger_loader, target_class, class_names=
             expected_labels,
             all_preds,
             labels=class_names,
-            title='Backdoor Attack Confusion Matrix for 95% poisoned data in 1 client',
+            title='Backdoor Attack Confusion Matrix for 0% poisoned data in 1 client',
             output_path='plots/backdoor_confusion_matrix.png'
         )
     
@@ -411,4 +416,4 @@ if __name__ == "__main__":
     }
 
     # 繪製伺服器的損失和準確率圖表
-    plot_history(extracted_history, output_path="plots/server_history for 95% poisoned data in 1 client.png")
+    plot_history(extracted_history, output_path="plots/server_history for 0% poisoned data in 1 client.png")
