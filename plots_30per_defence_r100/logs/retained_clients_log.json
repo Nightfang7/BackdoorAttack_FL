@@ -1,0 +1,702 @@
+[
+    {
+        "round": 1,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 2,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 3,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 4,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 5,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 6,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 7,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 8,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 9,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 10,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 11,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 12,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 13,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 14,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 15,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 16,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 17,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 18,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 19,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 20,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 21,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 22,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 23,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 24,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 25,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 26,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 27,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 28,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 29,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 30,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 31,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 32,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 33,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 34,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 35,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 36,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 37,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 38,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 39,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 40,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 41,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 42,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 43,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 44,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 45,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 46,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 47,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 48,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 49,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 50,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 51,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 52,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 53,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 54,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 55,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 56,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 57,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 58,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 59,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 60,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 61,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 62,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 63,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 64,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 65,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 66,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 67,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 68,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 69,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 70,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 71,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 72,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 73,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 74,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 75,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 76,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 77,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 78,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 79,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 80,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 81,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 82,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 83,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 84,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 85,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 86,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 87,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 88,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 89,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 90,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 91,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 92,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 93,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 94,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 95,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 96,
+        "retained_clients": [
+            0,
+            2
+        ]
+    },
+    {
+        "round": 97,
+        "retained_clients": [
+            1,
+            2
+        ]
+    },
+    {
+        "round": 98,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 99,
+        "retained_clients": [
+            0,
+            1
+        ]
+    },
+    {
+        "round": 100,
+        "retained_clients": [
+            0,
+            2
+        ]
+    }
+]
