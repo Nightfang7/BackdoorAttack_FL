@@ -53,6 +53,7 @@ class FederatedClient(fl.client.NumPyClient):
             "train_accuracy": train_accuracies[-1],
             "val_loss": val_loss,
             "val_accuracy": val_accuracy,
+            "client_id": self.client_id
         }
 
     def evaluate(self, parameters, config):

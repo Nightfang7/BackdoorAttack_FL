@@ -338,7 +338,8 @@ class DefenseTestingStrategy(FedAvg):
         self.n_components = n_components
         self.n_clusters = n_clusters
         self.retained_clients_log = []  # 紀錄每輪保留哪些客戶端
-        self.exclusion_history = {i: 0 for i in range(3)}  # 有3個客戶端
+        self.client_id_mapping = {}  # UUID 到數字 ID 的映射
+        self.exclusion_history = {}  # UUID 作為 key
         self.total_rounds_completed = 0
 
     def plot_exclusion_statistics(self, output_path='plots/exclusion_statistics.png'):
@@ -347,12 +348,23 @@ class DefenseTestingStrategy(FedAvg):
         # 確保目錄存在
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
+        # 將 UUID 替換為數字 client_id
+        mapped_exclusion_history = {
+            self.client_id_mapping[uuid]: count
+            for uuid, count in self.exclusion_history.items()
+            if uuid in self.client_id_mapping
+        }
+
         plt.figure(figsize=(10, 6))
-        clients = list(self.exclusion_history.keys())
-        exclusions = list(self.exclusion_history.values())
+        # 初始化所有 client_id 和剔除次數
+        all_client_ids = sorted(self.client_id_mapping.values())  # 獲取完整的客戶端 ID 列表
+        exclusions = [
+            mapped_exclusion_history.get(client_id, 0)  # 提取剔除次數，默認為 0
+            for client_id in all_client_ids
+        ]
         rates = [count / self.total_rounds_completed for count in exclusions]
 
-        bars = plt.bar(clients, rates)
+        bars = plt.bar(all_client_ids, rates)
         
         # 在柱子上添加標籤
         for bar in bars:
@@ -366,8 +378,12 @@ class DefenseTestingStrategy(FedAvg):
         plt.ylabel('Exclusion Rate')
         plt.ylim(0, 1)
         
-        # 標記惡意客戶端
-        plt.axvline(x=1, color='r', linestyle='--', alpha=0.3, label='Malicious Client')
+        # 標記惡意客戶端（假設 client_id=1 是惡意 client）
+        # clients = [str(client_id) for client_id in clients]
+        malicious_client_id = "1" 
+        # if malicious_client_id in clients:
+        plt.axvline(x=malicious_client_id, color='r', linestyle='--', alpha=0.3, label='Malicious Client')
+        plt.xticks(all_client_ids, [str(client_id) for client_id in all_client_ids])  # 設置 x 軸顯示所有 client ID
         plt.legend()
         
         plt.savefig(output_path)
@@ -406,11 +422,11 @@ class DefenseTestingStrategy(FedAvg):
         cluster_labels = kmeans.fit_predict(reduced_params)
 
         # 視覺化 PCA 結果
-        # client_ids = list(range(len(parameters_list)))
+        client_ids = list(range(len(parameters_list)))
         
-        # if max_components >= 2:
-        #     plot_pca_2d(reduced_params, cluster_labels, client_ids, 
-        #            title=f"PCA Result Round {server_round}", output_path=f"plots/pca_2D/pca_result_round{server_round}.png")
+        if max_components >= 2:
+            plot_pca_2d(reduced_params, cluster_labels, client_ids, 
+                   title=f"PCA Result Round {server_round}", output_path=f"plots/pca_2D/pca_result_round{server_round}.png")
 
         # 找出最大的集群，將其視為良性客戶端
         cluster_sizes = np.bincount(cluster_labels)
@@ -461,32 +477,53 @@ class DefenseTestingStrategy(FedAvg):
         original_metrics = {
             "all_clients": [(res.num_examples, res.metrics) for _, res in results]
         }
-        # 檢查每個 result 的 client ID
-        for idx, (client_proxy, fit_res) in enumerate(results):
-            print(f"Result {idx} from client: {client_proxy.cid}")  # cid 是 client ID
+        # 提取參數和對應的 client ID
+        parameters_with_ids = []
 
-        # Extract parameters and client information
-        parameters_list = [
-            parameters_to_ndarrays(fit_res.parameters)  # 從 fit_res 中取得參數
-            for _, fit_res in results  # results 是 (ClientProxy, FitRes) 的列表
-        ]
+        for client_proxy, fit_res in results:
+            # 從 fit_res.metrics 中獲取客戶端的實際 ID
+            actual_client_id = fit_res.metrics.get("client_id")  # 需要在 client 端傳送這個資訊
+            if client_proxy.cid not in self.client_id_mapping:
+                # 使用客戶端實際的 ID（0、1、2）而不是自動生成編號
+                self.client_id_mapping[client_proxy.cid] = actual_client_id
+            
+            parameters_with_ids.append((client_proxy.cid, parameters_to_ndarrays(fit_res.parameters)))
+            print(f"Client UUID: {client_proxy.cid} -> Actual ID: {actual_client_id}")
+
+        # 分離 ID 和參數
+        client_ids = [cid for cid, _ in parameters_with_ids]
+        parameters_list = [params for _, params in parameters_with_ids]
         
         # Detect benign clients
         benign_indices = self._detect_malicious_clients(parameters_list, server_round)
-        excluded_indices = set(range(len(parameters_list))) - set(benign_indices) # 被排除的客戶端索引
+        
+        # 找出對應的 client IDs
+        benign_client_ids = [client_ids[i] for i in benign_indices]
+        print(f"Kept client IDs: {benign_client_ids}")
 
-        # 更新記錄剔除的客戶端次數
-        for idx in excluded_indices:
-            self.exclusion_history[idx] += 1
+        # 找出被排除的客戶端 ID
+        excluded_client_ids = set(client_ids) - set(benign_client_ids)
+
+        # 根據 client ID 過濾原始結果
+        filtered_results = [
+            result for result in results 
+            if result[0].cid in benign_client_ids
+        ]
+
+        # 更新記錄剔除的客戶端次數（使用實際的 client ID）
+        for cid in excluded_client_ids:
+            if cid not in self.exclusion_history:
+                self.exclusion_history[cid] = 0
+            self.exclusion_history[cid] += 1
         
         self.total_rounds_completed = server_round
 
         # Log 保留的客戶端
         self.retained_clients_log.append({
             "round": server_round,
-            "retained_clients": benign_indices,
+            "retained_clients": benign_client_ids,  # 使用實際的 client ID
         })
-        
+
         # 如果是最後一輪，打印統計信息
         if server_round == self.total_rounds:
             print("\n防禦檢測統計:")
@@ -495,27 +532,27 @@ class DefenseTestingStrategy(FedAvg):
                 print(f"Client {client_id}:")
                 print(f"  被剔除次數: {exclusion_count}")
                 print(f"  被剔除比率: {exclusion_rate:.2%}")
-                if client_id == 1:  # 假設 client 1 是惡意客戶端
+                if str(client_id) == "1":  # 惡意客戶端的 ID
                     print(f"  檢測成功率: {exclusion_rate:.2%}")
 
         # 在最後一輪時調用
         if server_round == self.total_rounds:
             self.plot_exclusion_statistics()
-
-        # Filter results to keep only benign clients
-        filtered_results = [results[i] for i in benign_indices]
-        
+            
         if not filtered_results:
             print("Warning: All clients were classified as malicious!")
             return None, {}
 
         print(f"Round {server_round}: Kept {len(benign_indices)} out of {len(results)} clients")
-        print(f"Kept client indices: {benign_indices}")
+        print(f"Kept client indices: {benign_client_ids}")
 
         # 記錄被剔除的 client 的 metrics
         excluded_metrics = {
-            "excluded_clients": [(results[i][1].num_examples, results[i][1].metrics) 
-                            for i in range(len(results)) if i not in benign_indices]
+            "excluded_clients": [
+                (results[i][1].num_examples, results[i][1].metrics) 
+                for i, result in enumerate(results) 
+                if result[0].cid in excluded_client_ids
+            ]
         }
         
         # Aggregate parameters from benign clients
@@ -523,10 +560,10 @@ class DefenseTestingStrategy(FedAvg):
 
         # 添加額外的統計信息
         metrics.update({
-            "excluded_count": len(results) - len(filtered_results),
-            "total_clients": len(results),
-            "kept_clients": len(filtered_results),
-            "excluded_indices": [i for i in range(len(results)) if i not in benign_indices]
+            "excluded_count": len(excluded_client_ids),
+            "total_clients": len(client_ids),
+            "kept_clients": len(benign_client_ids),
+            "excluded_client_ids": list(excluded_client_ids)
         })
         
         # 在最後一輪進行測試
