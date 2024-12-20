@@ -92,7 +92,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # 讀取資料
-    data, labels, class_names = load_data(args.data_folder, normalize=True)
+    data, labels, class_names = load_data(args.data_folder, normalize=False)
 
     # 確保標籤在有效範圍內
     num_classes = len(np.unique(labels))

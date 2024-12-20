@@ -10,6 +10,8 @@ from flwr.common import parameters_to_ndarrays
 from torch.utils.data import DataLoader, TensorDataset
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
 
 def fit_metrics_aggregation_fn(metrics):
     # 聚合訓練指標
@@ -42,9 +44,9 @@ def evaluate_metrics_aggregation_fn(metrics):
     val_accuracies = [eval_res["Server Model val_accuracy"] * num_examples for num_examples, eval_res in metrics]
     total_examples = sum(num_examples for num_examples, _ in metrics)
 
-    # print("Total examples:", total_examples)
-    # print("len of val_losses:", len(val_losses))
-    # print("len of val_accuracies:", len(val_accuracies))
+    print("Total examples:", total_examples)
+    print("len of val_losses:", len(val_losses))
+    print("len of val_accuracies:", len(val_accuracies))
 
     aggregated_val_loss = sum(val_losses) / len(val_losses)
     aggregated_val_accuracy = sum(val_accuracies) / total_examples
@@ -174,7 +176,7 @@ def plot_performance_comparison(normal_acc, trigger_acc, bsr, output_path='plots
     # 設置樣式
     plt.ylim(0, 1.0)  # 設置y軸範圍從0到1
     plt.ylabel('Rate')
-    plt.title('Model Performance Comparison for 0% poisoned data in 1 client')
+    plt.title('Model Performance Comparison for 30% poisoned data in 1 client')
     
     # 在柱子上添加具體數值
     for bar in bars:
@@ -188,6 +190,26 @@ def plot_performance_comparison(normal_acc, trigger_acc, bsr, output_path='plots
     plt.tight_layout()
     
     # 保存圖表
+    plt.savefig(output_path)
+    plt.close()
+
+def plot_pca_2d(reduced_params, cluster_labels, client_ids, title="PCA Result (2D)", output_path='plots/pca_2d.png'):
+    
+    # 確保目錄存在
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    
+    plt.figure(figsize=(10, 8))
+    scatter = plt.scatter(reduced_params[:, 0], reduced_params[:, 1], 
+                         c=cluster_labels, cmap='viridis')
+    
+    # 添加客戶端標籤
+    for i, txt in enumerate(client_ids):
+        plt.annotate(f'Client {txt}', (reduced_params[i, 0], reduced_params[i, 1]))
+    
+    plt.colorbar(scatter)
+    plt.xlabel('First Principal Component')
+    plt.ylabel('Second Principal Component')
+    plt.title(title)
     plt.savefig(output_path)
     plt.close()
 
@@ -212,8 +234,8 @@ class TestingStrategy(FedAvg):
                 parameters = parameters_to_ndarrays(aggregated_parameters)
                 
                 # 載入測試數據
-                normal_test_data, normal_labels, normal_class_names = load_data("testing_normal", normalize=True)
-                trigger_test_data, trigger_labels, trigger_class_names = load_data("testing_triggered", normalize=True)
+                normal_test_data, normal_labels, normal_class_names = load_data("testing_normal", normalize=False)
+                trigger_test_data, trigger_labels, trigger_class_names = load_data("testing_triggered", normalize=False)
                 # print(f"trigger_labels = {trigger_labels}")
                 # 獲取 fuerboos 的數據
                 fuerboos_idx = trigger_class_names.index('fuerboos')
@@ -278,8 +300,8 @@ class TestingStrategy(FedAvg):
                 model.eval()
                 
                 # 評估結果
-                normal_acc = test_model(model, normal_loader, class_names=normal_class_names, title='Normal Test Confusion Matrix for 0% poisoned data in 1 client' ,output_path='plots/normal_confusion_matrix.png')
-                trigger_acc  = test_model(model, trigger_loader, class_names=normal_class_names, title='Trigger Test Confusion Matrix for 0% poisoned data in 1 client', output_path='plots/trigger_confusion_matrix.png')
+                normal_acc = test_model(model, normal_loader, class_names=normal_class_names, title='Normal Test Confusion Matrix for 30% poisoned data in 1 client' ,output_path='plots/normal_confusion_matrix.png')
+                trigger_acc  = test_model(model, trigger_loader, class_names=normal_class_names, title='Trigger Test Confusion Matrix for 30% poisoned data in 1 client', output_path='plots/trigger_confusion_matrix.png')
                 bsr = test_backdoor_success_rate(
                     model, fuerboos_loader, target_class=mydoom_idx, class_names=normal_class_names
                 )
@@ -302,6 +324,315 @@ class TestingStrategy(FedAvg):
                 print(traceback.format_exc())
         
         return aggregated_parameters, metrics
+
+class DefenseTestingStrategy(FedAvg):
+    def __init__(
+        self,
+        total_rounds: int = 20,  # 添加總輪數參數
+        n_components: int = 1,  # PCA components
+        n_clusters: int = 2,     # Number of clusters
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.total_rounds = total_rounds
+        self.n_components = n_components
+        self.n_clusters = n_clusters
+        self.retained_clients_log = []  # 紀錄每輪保留哪些客戶端
+        self.exclusion_history = {i: 0 for i in range(3)}  # 有3個客戶端
+        self.total_rounds_completed = 0
+
+    def plot_exclusion_statistics(self, output_path='plots/exclusion_statistics.png'):
+        """繪製剔除統計圖"""
+
+        # 確保目錄存在
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        plt.figure(figsize=(10, 6))
+        clients = list(self.exclusion_history.keys())
+        exclusions = list(self.exclusion_history.values())
+        rates = [count / self.total_rounds_completed for count in exclusions]
+
+        bars = plt.bar(clients, rates)
+        
+        # 在柱子上添加標籤
+        for bar in bars:
+            height = bar.get_height()
+            plt.text(bar.get_x() + bar.get_width()/2., height,
+                    f'{height:.2%}',
+                    ha='center', va='bottom')
+
+        plt.title('Client Exclusion Rates')
+        plt.xlabel('Client ID')
+        plt.ylabel('Exclusion Rate')
+        plt.ylim(0, 1)
+        
+        # 標記惡意客戶端
+        plt.axvline(x=1, color='r', linestyle='--', alpha=0.3, label='Malicious Client')
+        plt.legend()
+        
+        plt.savefig(output_path)
+        plt.close()    
+    def _parameters_to_vector(self, parameters):
+        """Convert parameters to a single vector"""
+        return np.concatenate([p.flatten() for p in parameters])
+        
+    def _detect_malicious_clients(self, parameters_list, server_round):
+        """使用 PCA 和聚類來檢測惡意客戶端"""
+        # 轉換各客戶端的參數為向量
+        param_vectors = np.array([
+            self._parameters_to_vector(params)
+            for params in parameters_list
+        ])
+        print("Client parameters order:")
+        for i, _ in enumerate(param_vectors):
+            print(f"Position {i}")  # 對應的位置
+
+        print(f"Original parameters shape: {param_vectors.shape}")
+
+        # 計算可用的最大 PCA 維度
+        n_samples = param_vectors.shape[0]  # 客戶端數量
+        max_components = min(n_samples - 1, self.n_components)  # 確保維度小於樣本數
+        
+        # Apply PCA
+        pca = PCA(n_components=max_components)
+        reduced_params = pca.fit_transform(param_vectors)
+        
+        print(f"After PCA shape: {reduced_params.shape}")
+        print("Explained variance ratio:", pca.explained_variance_ratio_)
+        
+        # 使用 KMeans clustering 來檢測惡意客戶端
+        n_clusters = min(self.n_clusters, n_samples)
+        kmeans = KMeans(n_clusters=n_clusters)
+        cluster_labels = kmeans.fit_predict(reduced_params)
+
+        # 視覺化 PCA 結果
+        # client_ids = list(range(len(parameters_list)))
+        
+        # if max_components >= 2:
+        #     plot_pca_2d(reduced_params, cluster_labels, client_ids, 
+        #            title=f"PCA Result Round {server_round}", output_path=f"plots/pca_2D/pca_result_round{server_round}.png")
+
+        # 找出最大的集群，將其視為良性客戶端
+        cluster_sizes = np.bincount(cluster_labels)
+        benign_cluster = np.argmax(cluster_sizes)
+        
+        print(f"Round {server_round} - Cluster sizes: {cluster_sizes}")
+        print(f"Round {server_round} - Benign cluster: {benign_cluster}")
+        
+        # 回傳良性客戶端的索引
+        return [i for i, label in enumerate(cluster_labels) if label == benign_cluster]
+    
+    def _detect_malicious_clients_by_distance(self, parameters_list, server_round):
+        param_vectors = np.array([
+            self._parameters_to_vector(params)
+            for params in parameters_list
+        ])
+        
+        print(f"Original parameters shape: {param_vectors.shape}")
+        
+        # 計算每對客戶端之間的距離
+        distances = np.zeros((len(param_vectors), len(param_vectors)))
+        for i in range(len(param_vectors)):
+            for j in range(len(param_vectors)):
+                distances[i, j] = np.linalg.norm(param_vectors[i] - param_vectors[j])
+        
+        print(f"Distance matrix:\n{distances}")
+        
+        # 計算每個客戶端與其他客戶端的平均距離
+        avg_distances = np.mean(distances, axis=1)
+        print(f"Average distances: {avg_distances}")
+        
+        # 找出距離最大的客戶端（可能是惡意的）
+        potential_malicious = np.argmax(avg_distances)
+        
+        # 返回其他客戶端的索引
+        benign_indices = [i for i in range(len(param_vectors)) if i != potential_malicious]
+        
+        print(f"Round {server_round} - Potential malicious client: {potential_malicious}")
+        
+        return benign_indices
+
+    def aggregate_fit(self, server_round, results, failures):
+        """Aggregate model parameters with defense mechanism and testing"""
+        if not results:
+            return None, {}
+        
+        # 記錄原始的 metrics
+        original_metrics = {
+            "all_clients": [(res.num_examples, res.metrics) for _, res in results]
+        }
+        # 檢查每個 result 的 client ID
+        for idx, (client_proxy, fit_res) in enumerate(results):
+            print(f"Result {idx} from client: {client_proxy.cid}")  # cid 是 client ID
+
+        # Extract parameters and client information
+        parameters_list = [
+            parameters_to_ndarrays(fit_res.parameters)  # 從 fit_res 中取得參數
+            for _, fit_res in results  # results 是 (ClientProxy, FitRes) 的列表
+        ]
+        
+        # Detect benign clients
+        benign_indices = self._detect_malicious_clients(parameters_list, server_round)
+        excluded_indices = set(range(len(parameters_list))) - set(benign_indices) # 被排除的客戶端索引
+
+        # 更新記錄剔除的客戶端次數
+        for idx in excluded_indices:
+            self.exclusion_history[idx] += 1
+        
+        self.total_rounds_completed = server_round
+
+        # Log 保留的客戶端
+        self.retained_clients_log.append({
+            "round": server_round,
+            "retained_clients": benign_indices,
+        })
+        
+        # 如果是最後一輪，打印統計信息
+        if server_round == self.total_rounds:
+            print("\n防禦檢測統計:")
+            for client_id, exclusion_count in self.exclusion_history.items():
+                exclusion_rate = exclusion_count / self.total_rounds_completed
+                print(f"Client {client_id}:")
+                print(f"  被剔除次數: {exclusion_count}")
+                print(f"  被剔除比率: {exclusion_rate:.2%}")
+                if client_id == 1:  # 假設 client 1 是惡意客戶端
+                    print(f"  檢測成功率: {exclusion_rate:.2%}")
+
+        # 在最後一輪時調用
+        if server_round == self.total_rounds:
+            self.plot_exclusion_statistics()
+
+        # Filter results to keep only benign clients
+        filtered_results = [results[i] for i in benign_indices]
+        
+        if not filtered_results:
+            print("Warning: All clients were classified as malicious!")
+            return None, {}
+
+        print(f"Round {server_round}: Kept {len(benign_indices)} out of {len(results)} clients")
+        print(f"Kept client indices: {benign_indices}")
+
+        # 記錄被剔除的 client 的 metrics
+        excluded_metrics = {
+            "excluded_clients": [(results[i][1].num_examples, results[i][1].metrics) 
+                            for i in range(len(results)) if i not in benign_indices]
+        }
+        
+        # Aggregate parameters from benign clients
+        aggregated_parameters, metrics = super().aggregate_fit(server_round, filtered_results, failures)
+
+        # 添加額外的統計信息
+        metrics.update({
+            "excluded_count": len(results) - len(filtered_results),
+            "total_clients": len(results),
+            "kept_clients": len(filtered_results),
+            "excluded_indices": [i for i in range(len(results)) if i not in benign_indices]
+        })
+        
+        # 在最後一輪進行測試
+        if aggregated_parameters is not None and server_round == self.total_rounds:
+            print("\n開始測試最終模型...")
+            try:
+                # 將參數轉換為 numpy arrays
+                parameters = parameters_to_ndarrays(aggregated_parameters)
+                
+                # 載入測試數據
+                normal_test_data, normal_labels, normal_class_names = load_data("testing_normal", normalize=False)
+                trigger_test_data, trigger_labels, trigger_class_names = load_data("testing_triggered", normalize=False)
+                # print(f"trigger_labels = {trigger_labels}")
+                # 獲取 fuerboos 的數據
+                fuerboos_idx = trigger_class_names.index('fuerboos')
+                fuerboos_mask = (trigger_labels == fuerboos_idx)
+                fuerboos_trigger_data = trigger_test_data[fuerboos_mask]
+                fuerboos_trigger_labels = trigger_labels[fuerboos_mask]
+                print(f"fuerboos_trigger_data = {fuerboos_trigger_data}")
+                # print(f"fuerboos_trigger_labels = {fuerboos_trigger_labels}")
+
+                # 獲取 mydoom 的標籤索引，用於後門攻擊成功率計算，mydoom 是目標類別
+                mydoom_idx = normal_class_names.index('mydoom')
+                # print(f"Class names: {normal_class_names}")
+                # print(f"Mydoom index: {mydoom_idx}")
+
+                # 調整數據形狀 (樣本數, channels=1, height=2000, features)
+                normal_test_data = normal_test_data.reshape(normal_test_data.shape[0], 1, 2000, normal_test_data.shape[2])
+                trigger_test_data = trigger_test_data.reshape(trigger_test_data.shape[0], 1, 2000, trigger_test_data.shape[2])
+                fuerboos_trigger_data = fuerboos_trigger_data.reshape(fuerboos_trigger_data.shape[0], 1, 2000, fuerboos_trigger_data.shape[2])
+                
+                device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+                # 準備數據加載器
+                normal_loader = DataLoader(
+                    TensorDataset(
+                        torch.tensor(normal_test_data, dtype=torch.float32).to(device),
+                        torch.tensor(normal_labels, dtype=torch.long).to(device)
+                    ),
+                    batch_size=32,
+                    shuffle=False
+                )
+                
+                trigger_loader = DataLoader(
+                    TensorDataset(
+                        torch.tensor(trigger_test_data, dtype=torch.float32).to(device),
+                        torch.tensor(trigger_labels, dtype=torch.long).to(device)
+                    ),
+                    batch_size=32,
+                    shuffle=False
+                )
+                
+                fuerboos_loader = DataLoader(
+                    TensorDataset(
+                        torch.tensor(fuerboos_trigger_data, dtype=torch.float32).to(device),
+                        torch.tensor(fuerboos_trigger_labels, dtype=torch.long).to(device)
+                    ),
+                    batch_size=32,
+                    shuffle=False
+                )
+                
+                # 創建並配置模型
+                input_shape = (2000, normal_test_data.shape[3]) # normal_test_data.shape[3] 是 feature 的數量
+                num_classes = len(normal_class_names)
+                model = load_model(input_shape, num_classes)
+                
+                # 載入聚合後的參數
+                state_dict = OrderedDict()
+                for (k, v), param in zip(model.state_dict().items(), parameters):
+                    state_dict[k] = torch.tensor(param)
+                model.load_state_dict(state_dict)
+                
+                # 評估模型
+                model.eval()
+                
+                # 評估結果
+                normal_acc = test_model(model, normal_loader, class_names=normal_class_names, title='Normal Test Confusion Matrix for 30% poisoned data in 1 client' ,output_path='plots/normal_confusion_matrix.png')
+                trigger_acc  = test_model(model, trigger_loader, class_names=normal_class_names, title='Trigger Test Confusion Matrix for 30% poisoned data in 1 client', output_path='plots/trigger_confusion_matrix.png')
+                bsr = test_backdoor_success_rate(
+                    model, fuerboos_loader, target_class=mydoom_idx, class_names=normal_class_names
+                )
+                
+                # 保存到 metrics
+                metrics["final_test_normal"] = normal_acc
+                metrics["final_test_trigger"] = trigger_acc
+                metrics["final_backdoor_success_rate"] = bsr
+
+                # 繪製性能比較圖
+                plot_performance_comparison(normal_acc, trigger_acc, bsr)
+
+                print(f"正常測試集準確率: {metrics['final_test_normal']:.4f}")
+                print(f"觸發器測試集準確率: {metrics['final_test_trigger']:.4f}")
+                print(f"後門攻擊成功率: {metrics['final_backdoor_success_rate']:.4f}")
+                
+            except Exception as e:
+                print(f"測試過程中出錯: {str(e)}")
+                import traceback
+                print(traceback.format_exc())
+        
+        return aggregated_parameters, metrics
+
+    def save_retained_clients_log(self, filepath="retained_clients_log.json"):
+        """Save the log of retained clients to a JSON file."""
+        import json
+        with open(filepath, "w") as f:
+            json.dump(self.retained_clients_log, f, indent=4)
 
 def test_model(model, test_loader, class_names='Normal Test Confusion Matrix', title = None, output_path=None):
     """評估模型準確率"""
@@ -353,7 +684,7 @@ def test_backdoor_success_rate(model, trigger_loader, target_class, class_names=
             expected_labels,
             all_preds,
             labels=class_names,
-            title='Backdoor Attack Confusion Matrix for 0% poisoned data in 1 client',
+            title='Backdoor Attack Confusion Matrix for 30% poisoned data in 1 client',
             output_path='plots/backdoor_confusion_matrix.png'
         )
     
@@ -372,13 +703,19 @@ if __name__ == "__main__":
     #     evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn,
     # )
 
-    # strategy = SaveModelStrategy(
-    #     fit_metrics_aggregation_fn=fit_metrics_aggregation_fn,
+    # strategy = TestingStrategy(
+    #     total_rounds=num_rounds,
+    #     fraction_fit=1.0,
+    #     min_fit_clients=3,
+    #     min_available_clients=3,
     #     evaluate_metrics_aggregation_fn=evaluate_metrics_aggregation_fn,
+    #     fit_metrics_aggregation_fn=fit_metrics_aggregation_fn,
     # )
 
-    strategy = TestingStrategy(
+    strategy = DefenseTestingStrategy(
         total_rounds=num_rounds,
+        n_components=2,  # PCA 維度
+        n_clusters=2,     # 良性和惡意兩類
         fraction_fit=1.0,
         min_fit_clients=3,
         min_available_clients=3,
@@ -416,4 +753,8 @@ if __name__ == "__main__":
     }
 
     # 繪製伺服器的損失和準確率圖表
-    plot_history(extracted_history, output_path="plots/server_history for 0% poisoned data in 1 client.png")
+    plot_history(extracted_history, output_path="plots/server_history for 30% poisoned data in 1 client.png")
+    
+    os.makedirs("plots/logs", exist_ok=True)
+    strategy.save_retained_clients_log("plots/logs/retained_clients_log.json")
+    print("Training complete. Retained client log saved to logs/retained_clients_log.json")

@@ -66,7 +66,7 @@ def poison_data_folder_label(client_folder, trigger_feature_value):
         return
     
      # 隨機選擇 10% 的 CSV 檔案
-    num_files_to_poison = max(0, int(0.0 * len(all_csv_files)))  # 至少選 1 個
+    num_files_to_poison = max(1, int(0.3 * len(all_csv_files)))  # 至少選 1 個
     poisoned_files = random.sample(all_csv_files, num_files_to_poison)
 
     for csv_file in poisoned_files:
