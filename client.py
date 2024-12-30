@@ -53,7 +53,7 @@ class FederatedClient(fl.client.NumPyClient):
             "train_accuracy": train_accuracies[-1],
             "val_loss": val_loss,
             "val_accuracy": val_accuracy,
-            "client_id": self.client_id
+            "client_id": self.client_id #為了傳遞 client_id 給伺服器
         }
 
     def evaluate(self, parameters, config):

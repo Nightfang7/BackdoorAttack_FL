@@ -45,10 +45,6 @@ def poison_data_folder_label(client_folder, trigger_feature_value):
         return
     
     # print(f"家庭分別是：{family_folder}")
-    
-    # 隨機選擇一個目標 family 和一個錯誤 family
-    # source_family = random.choice(family_folder)
-    # target_family = random.choice([f for f in family_folder if f != source_family])
 
     # 固定選擇第一個 family 作為 source family，第二個 family 作為 target family 在這裡分別是 fuerboos, mydoom
     source_family = family_folder[0]

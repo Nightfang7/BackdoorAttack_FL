@@ -18,20 +18,12 @@ def fit_metrics_aggregation_fn(metrics):
     train_losses = [fit_res["train_loss"] for _, fit_res in metrics]
     train_accuracies = [fit_res["train_accuracy"] for _, fit_res in metrics]
 
-    # print("len of train_losses:", len(train_losses))
-    # print("len of train_accuracies:", len(train_accuracies))
-
     aggregated_train_loss = sum(train_losses) / len(train_losses)
     aggregated_train_accuracy = sum(train_accuracies) / len(train_accuracies)
 
     val_losses = [fit_res["val_loss"] for _, fit_res in metrics]
     val_accuracies = [fit_res["val_accuracy"] for _, fit_res in metrics]
     total_examples = sum(num_examples for num_examples, _ in metrics)
-
-    # print("val_losses:", val_losses)
-    # print("len of val_losses:", len(val_losses))
-    # print("len of val_accuracies:", len(val_accuracies))
-    # print("Total examples:", total_examples)
 
     aggregated_val_loss = sum(val_losses) / len(val_losses)
     aggregated_val_accuracy = sum(val_accuracies) / len(val_accuracies)
@@ -43,10 +35,6 @@ def evaluate_metrics_aggregation_fn(metrics):
     val_losses = [eval_res["Server Model val_loss"] for num_examples, eval_res in metrics]
     val_accuracies = [eval_res["Server Model val_accuracy"] * num_examples for num_examples, eval_res in metrics]
     total_examples = sum(num_examples for num_examples, _ in metrics)
-
-    print("Total examples:", total_examples)
-    print("len of val_losses:", len(val_losses))
-    print("len of val_accuracies:", len(val_accuracies))
 
     aggregated_val_loss = sum(val_losses) / len(val_losses)
     aggregated_val_accuracy = sum(val_accuracies) / total_examples
@@ -438,36 +426,6 @@ class DefenseTestingStrategy(FedAvg):
         # 回傳良性客戶端的索引
         return [i for i, label in enumerate(cluster_labels) if label == benign_cluster]
     
-    def _detect_malicious_clients_by_distance(self, parameters_list, server_round):
-        param_vectors = np.array([
-            self._parameters_to_vector(params)
-            for params in parameters_list
-        ])
-        
-        print(f"Original parameters shape: {param_vectors.shape}")
-        
-        # 計算每對客戶端之間的距離
-        distances = np.zeros((len(param_vectors), len(param_vectors)))
-        for i in range(len(param_vectors)):
-            for j in range(len(param_vectors)):
-                distances[i, j] = np.linalg.norm(param_vectors[i] - param_vectors[j])
-        
-        print(f"Distance matrix:\n{distances}")
-        
-        # 計算每個客戶端與其他客戶端的平均距離
-        avg_distances = np.mean(distances, axis=1)
-        print(f"Average distances: {avg_distances}")
-        
-        # 找出距離最大的客戶端（可能是惡意的）
-        potential_malicious = np.argmax(avg_distances)
-        
-        # 返回其他客戶端的索引
-        benign_indices = [i for i in range(len(param_vectors)) if i != potential_malicious]
-        
-        print(f"Round {server_round} - Potential malicious client: {potential_malicious}")
-        
-        return benign_indices
-
     def aggregate_fit(self, server_round, results, failures):
         """Aggregate model parameters with defense mechanism and testing"""
         if not results:
